@@ -6,7 +6,7 @@ from pfvtr.msg import MapRepeaterAction, MapRepeaterResult
 
 class MyROSNode:
     def __init__(self):
-        rospy.init_node('my_ros_node')  # Initialize the ROS node with a unique name
+        rospy.init_node('meta_control')  # Initialize the ROS node with a unique name
 
         # Define a publisher
         self.client = actionlib.SimpleActionClient("repeater", MapRepeaterAction)
