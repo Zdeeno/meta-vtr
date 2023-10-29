@@ -1,0 +1,5 @@
+map AB
+behav odom_turn_deg 30
+map BC
+behav odom_turn_deg -30
+map CD
