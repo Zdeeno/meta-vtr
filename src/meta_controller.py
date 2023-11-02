@@ -43,7 +43,7 @@ class MyROSNode:
                     raise Exception("Traversal Failed")
             elif action[0] == "behav":
                 self.complementary(action[1:])
-        rospy.loginfo("Goal reached - quitting meta control.")
+        rospy.loginfo("All tasks fulfilled - quitting meta control.")
 
     def traversal(self, map_name):
         rospy.loginfo("Starting traversal of map: " + map_name)
