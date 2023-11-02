@@ -30,7 +30,6 @@ class MyROSNode:
         self.odom_sub = rospy.Subscriber(odometry_topic, Odometry, odom_cb)
         self.control_pub = rospy.Publisher(control_topic, Twist)
 
-        # TODO: implement parsing of the description here
         # self.actions = [["map", "map_name"], ["behav", "odom_turn_deg", -90]]
         myfile = open(map_desc_file, "r")
         self.action_strings = myfile.readlines()
@@ -72,21 +71,22 @@ class MyROSNode:
         curr_diff = angular_diff(self.comp_goal, curr_or)
         if abs(curr_diff) <= THRESHOLD:
             # goal reached
+            self.send_twist(0.0)
             self.comp = False
             self.comp_goal = None
             self.comp_diff = None
-        # control robot
-        control_cmd = min(P * curr_diff, MAX_CMD)
-        msg_cmd = Twist()
-        msg_cmd.angular.z = control_cmd
-        self.control_pub.publish(msg_cmd)
-        
+        self.send_twist(curr_diff)
         
     def angular_diff(self, x, y):
         a = (x - y) % 2*math.pi
         b = (y - x) % 2*math.pi
         return -a if a < b else b
-            
+
+    def send_twist(self, ref_diff):
+        control_cmd = min(P * ref_diff, MAX_CMD)
+        msg_cmd = Twist()
+        msg_cmd.angular.z = control_cmd
+        self.control_pub.publish(msg_cmd)
 
     def run(self):
         # Main loop to keep the node running
