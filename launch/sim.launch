@@ -1,0 +1,8 @@
+<launch>
+    <include file="$(find pfvtr)/launch/sim.launch"/>
+    
+    <node pkg="metavtr" type="meta_controller.py" name="meta_controller" respawn="true" output="screen">
+            <param name="config_file" type="string" value="sim_test.txt" />
+    </node>
+
+</launch>

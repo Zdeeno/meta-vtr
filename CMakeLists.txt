@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   actionlib_msgs
   sensor_msgs
-  pfvtr_msgs
+  pfvtr
 )
 
 ## System dependencies are found with CMake's conventions
@@ -74,7 +74,7 @@ find_package(Boost REQUIRED COMPONENTS system)
    actionlib_msgs
    sensor_msgs
    geometry_msgs
-   pfvtr_msgs
+   pfvtr
 )
 
 ################################################
@@ -105,7 +105,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES pfvtr
-CATKIN_DEPENDS rospy std_msgs message_runtime sensor_msgs pfvtr_msgs
+CATKIN_DEPENDS rospy std_msgs message_runtime sensor_msgs pfvtr
 #  DEPENDS system_lib
   CATKIN_DEPENDS actionlib_msgs
 )

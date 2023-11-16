@@ -1,0 +1,4 @@
+map sim1
+behav odom_turn_deg 180
+map sim2
+behav odom_turn_deg -90

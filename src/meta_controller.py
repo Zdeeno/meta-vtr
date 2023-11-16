@@ -4,18 +4,18 @@ import rospy
 import actionlib
 import math
 import numpy as np
-from pfvtr.msg import MapRepeaterAction, MapRepeaterResult
+from pfvtr.msg import MapRepeaterAction, MapRepeaterResult, MapRepeaterGoal
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from tf.transformations import euler_from_quaternion
 
 
-P = 3
+P = 1
 THRESHOLD = 0.05
 MAX_CMD = 1.0
-map_desc_file = "configs/trav.txt"
-odometry_topic = "blah_blah"
-control_topic = "blah_blah"
+map_desc_file = "/home/zdeeno/Downloads/pf_workspace/src/metavtr/configs/sim_test.txt"
+odometry_topic = "/robot1/odometry"
+control_topic = "/robot1/velocity_reference"
 
 
 class MyROSNode:
@@ -26,20 +26,21 @@ class MyROSNode:
         self.comp = False
         self.comp_diff = None
         self.comp_goal = None
-        self.client = actionlib.SimpleActionClient("repeater", MapRepeaterAction)
-        self.odom_sub = rospy.Subscriber(odometry_topic, Odometry, odom_cb)
-        self.control_pub = rospy.Publisher(control_topic, Twist)
+        self.client = actionlib.SimpleActionClient("/pfvtr/repeater", MapRepeaterAction)
+        self.client.wait_for_server()
+        self.odom_sub = rospy.Subscriber(odometry_topic, Odometry, self.odom_cb)
+        self.control_pub = rospy.Publisher(control_topic, Twist, queue_size=10)
 
         # TODO: implement parsing of the description here
         # self.actions = [["map", "map_name"], ["behav", "odom_turn_deg", -90]]
         myfile = open(map_desc_file, "r")
         self.action_strings = myfile.readlines()
 
-    def start_execution(self)
-        for action_string in self.actions_strings:
+    def start_execution(self):
+        for action_string in self.action_strings:
             action = action_string.split(" ")
-            if action[0] == "traversal":
-                success = self.traversal(action[1]):
+            if action[0] == "map":
+                success = self.traversal(action[1])
                 if not success:
                     raise Exception("Traversal Failed")
             elif action[0] == "behav":
@@ -48,43 +49,52 @@ class MyROSNode:
 
     def traversal(self, map_name):
         rospy.loginfo("Starting traversal of map: " + map_name)
-        curr_action = MapRepeaterAction(0, 0, 1, 2, True, map_name)
+        curr_action = MapRepeaterGoal(startPos=0.0, endPos=0.0, traversals=0, nullCmd=True, imagePub=1, useDist=True, mapName=map_name[:-1])
         self.client.send_goal(curr_action)
-        client.wait_for_result()
+        rospy.loginfo("Goal sent.")
+        self.client.wait_for_result()
         rospy.loginfo("Traversal finished!")
-        return client.get_result()
+        return self.client.get_result()
         
-    def complementary(self, desc)
-        rospy.longinfo("Starting complementary behaviour " + desc[0] + " " + desc[1])
+    def complementary(self, desc):
+        rospy.loginfo("Starting complementary behaviour " + desc[0] + " " + desc[1])
         self.comp_diff = float(desc[1])
         self.comp = True
-        while comp:
+        while self.comp:
             rospy.sleep(1.0)
             
     def odom_cb(self, msg):
         if not self.comp:
             # Not using this behaviour
             return
-        curr_or = euler_from_quaternion([msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w])
+        curr_or = euler_from_quaternion([msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w])[-1]
         if self.comp_goal is None:
             # Init goal
             self.comp_goal = curr_or + np.deg2rad(self.comp_diff)
-        curr_diff = angular_diff(self.comp_goal, curr_or)
+            rospy.logwarn("goal: " + str(self.comp_goal))
+            rospy.logwarn("curr: " + str(curr_or))
+            rospy.logwarn("target: " + str(np.deg2rad(self.comp_diff)))
+        curr_diff = self.angular_diff(self.comp_goal, curr_or)
         if abs(curr_diff) <= THRESHOLD:
-            # goal reached
+            rospy.loginfo("Complementary goal reached!")
+            self.control_pub.publish(Twist())
             self.comp = False
             self.comp_goal = None
             self.comp_diff = None
+            return
         # control robot
-        control_cmd = min(P * curr_diff, MAX_CMD)
+        rospy.logwarn("goal: " + str(self.comp_goal) + ", curr: " + str(curr_or) + ", diff: " + str(curr_diff))
+        control_cmd = -np.sign(curr_diff) * min(abs(P * curr_diff), MAX_CMD)
         msg_cmd = Twist()
         msg_cmd.angular.z = control_cmd
+        rospy.logwarn(control_cmd)
         self.control_pub.publish(msg_cmd)
+        return
         
         
     def angular_diff(self, x, y):
-        a = (x - y) % 2*math.pi
-        b = (y - x) % 2*math.pi
+        a = (x - y) % (2*math.pi)
+        b = (y - x) % (2*math.pi)
         return -a if a < b else b
             
 
