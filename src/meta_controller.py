@@ -31,7 +31,6 @@ class MyROSNode:
         self.odom_sub = rospy.Subscriber(odometry_topic, Odometry, self.odom_cb)
         self.control_pub = rospy.Publisher(control_topic, Twist, queue_size=10)
 
-        # TODO: implement parsing of the description here
         # self.actions = [["map", "map_name"], ["behav", "odom_turn_deg", -90]]
         myfile = open(map_desc_file, "r")
         self.action_strings = myfile.readlines()
@@ -45,7 +44,7 @@ class MyROSNode:
                     raise Exception("Traversal Failed")
             elif action[0] == "behav":
                 self.complementary(action[1:])
-        rospy.loginfo("Goal reached - quitting meta control.")
+        rospy.loginfo("All tasks fulfilled - quitting meta control.")
 
     def traversal(self, map_name):
         rospy.loginfo("Starting traversal of map: " + map_name)
@@ -96,7 +95,6 @@ class MyROSNode:
         a = (x - y) % (2*math.pi)
         b = (y - x) % (2*math.pi)
         return -a if a < b else b
-            
 
     def run(self):
         # Main loop to keep the node running
