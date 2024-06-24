@@ -4,18 +4,27 @@ import rospy
 import actionlib
 import math
 import numpy as np
-from pfvtr.msg import MapRepeaterAction, MapRepeaterResult, MapRepeaterGoal
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from tf.transformations import euler_from_quaternion
+import os
 
+# ------------ USE pfvtr or vtg ----------------
+METHOD = "pfvtr"
+# ----------------------------------------------
+
+if METHOD == "pfvtr":
+    from pfvtr.msg import MapRepeaterAction, MapRepeaterResult, MapRepeaterGoal
+if METHOD == "vtg":
+    from vtg.msg import MapRepeaterAction, MapRepeaterResult, MapRepeaterGoal
 
 P = 1
 THRESHOLD = 0.05
 MAX_CMD = 1.0
-map_desc_file = "/home/zdeeno/Downloads/pf_workspace/src/metavtr/configs/sim_test.txt"
-odometry_topic = "/robot1/odometry"
-control_topic = "/robot1/velocity_reference"
+file_dir = os.path.dirname(os.path.realpath(__file__))
+map_desc_file = os.path.join(file_dir, "../configs/sim_test.txt")
+# odometry_topic = "/robot1/odometry"
+# control_topic = "/robot1/velocity_reference"
 
 
 class MyROSNode:
@@ -26,7 +35,14 @@ class MyROSNode:
         self.comp = False
         self.comp_diff = None
         self.comp_goal = None
-        self.client = actionlib.SimpleActionClient("/pfvtr/repeater", MapRepeaterAction)
+
+        odometry_topic = rospy.get_param("~odom_topic")
+        control_topic = rospy.get_param("~cmd_vel_pub")
+
+        if METHOD == "pfvtr":
+            self.client = actionlib.SimpleActionClient("/pfvtr/repeater", MapRepeaterAction)
+        if METHOD == "vtg":
+            self.client = actionlib.SimpleActionClient("/vtg/repeater", MapRepeaterAction)
         self.client.wait_for_server()
         self.odom_sub = rospy.Subscriber(odometry_topic, Odometry, self.odom_cb)
         self.control_pub = rospy.Publisher(control_topic, Twist, queue_size=10)
@@ -54,14 +70,14 @@ class MyROSNode:
         self.client.wait_for_result()
         rospy.loginfo("Traversal finished!")
         return self.client.get_result()
-        
+
     def complementary(self, desc):
         rospy.loginfo("Starting complementary behaviour " + desc[0] + " " + desc[1])
         self.comp_diff = float(desc[1])
         self.comp = True
         while self.comp:
             rospy.sleep(1.0)
-            
+
     def odom_cb(self, msg):
         if not self.comp:
             # Not using this behaviour
@@ -89,8 +105,8 @@ class MyROSNode:
         rospy.logwarn(control_cmd)
         self.control_pub.publish(msg_cmd)
         return
-        
-        
+
+
     def angular_diff(self, x, y):
         a = (x - y) % (2*math.pi)
         b = (y - x) % (2*math.pi)
@@ -107,4 +123,3 @@ if __name__ == '__main__':
         node.run()
     except rospy.ROSInterruptException:
         rospy.logwarn("Process interrupted!")
-
