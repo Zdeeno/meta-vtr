@@ -4,8 +4,8 @@
 
     <node pkg="metavtr" type="meta_controller.py" name="meta_controller" respawn="true" output="screen">
             <param name="config_file" type="string" value="sim_test.txt" />
-            <param name="odom_topic" type="string" value="$(arg odom_topic)" />
-            <param name="cmd_vel_topic" type="string" value="$(arg cmd_vel_sub)" />
+            <param name="odom_topic" type="string" value="/robot1/odometry" />
+            <param name="cmd_vel_pub" type="string" value="/bluetooth_teleop/cmd_vel" />
     </node>
 
 </launch>

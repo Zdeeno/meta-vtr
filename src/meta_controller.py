@@ -8,19 +8,12 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from tf.transformations import euler_from_quaternion
 import os
-
-# ------------ USE pfvtr or vtg ----------------
-METHOD = "pfvtr"
-# ----------------------------------------------
-
-if METHOD == "pfvtr":
-    from pfvtr.msg import MapRepeaterAction, MapRepeaterResult, MapRepeaterGoal
-if METHOD == "vtg":
-    from vtg.msg import MapRepeaterAction, MapRepeaterResult, MapRepeaterGoal
+from pfvtr.msg import MapRepeaterAction, MapRepeaterResult, MapRepeaterGoal
 
 P = 1
 THRESHOLD = 0.05
 MAX_CMD = 1.0
+MIN_CMD = 0.1
 file_dir = os.path.dirname(os.path.realpath(__file__))
 map_desc_file = os.path.join(file_dir, "../configs/sim_test.txt")
 # odometry_topic = "/robot1/odometry"
@@ -39,10 +32,7 @@ class MyROSNode:
         odometry_topic = rospy.get_param("~odom_topic")
         control_topic = rospy.get_param("~cmd_vel_pub")
 
-        if METHOD == "pfvtr":
-            self.client = actionlib.SimpleActionClient("/pfvtr/repeater", MapRepeaterAction)
-        if METHOD == "vtg":
-            self.client = actionlib.SimpleActionClient("/vtg/repeater", MapRepeaterAction)
+        self.client = actionlib.SimpleActionClient("/pfvtr/repeater", MapRepeaterAction)
         self.client.wait_for_server()
         self.odom_sub = rospy.Subscriber(odometry_topic, Odometry, self.odom_cb)
         self.control_pub = rospy.Publisher(control_topic, Twist, queue_size=10)
@@ -55,16 +45,17 @@ class MyROSNode:
         for action_string in self.action_strings:
             action = action_string.split(" ")
             if action[0] == "map":
-                success = self.traversal(action[1])
+                success = self.traversal(action[1], int(action[2]))
                 if not success:
                     raise Exception("Traversal Failed")
             elif action[0] == "behav":
                 self.complementary(action[1:])
         rospy.loginfo("All tasks fulfilled - quitting meta control.")
 
-    def traversal(self, map_name):
+    def traversal(self, map_name, lookaround):
         rospy.loginfo("Starting traversal of map: " + map_name)
-        curr_action = MapRepeaterGoal(startPos=0.0, endPos=0.0, traversals=0, nullCmd=True, imagePub=1, useDist=True, mapName=map_name[:-1])
+        curr_action = MapRepeaterGoal(startPos=0.0, endPos=0.0, traversals=0, nullCmd=True, imagePub=lookaround,
+                                      useDist=True, mapName=map_name)
         self.client.send_goal(curr_action)
         rospy.loginfo("Goal sent.")
         self.client.wait_for_result()
@@ -99,7 +90,7 @@ class MyROSNode:
             return
         # control robot
         rospy.logwarn("goal: " + str(self.comp_goal) + ", curr: " + str(curr_or) + ", diff: " + str(curr_diff))
-        control_cmd = -np.sign(curr_diff) * min(abs(P * curr_diff), MAX_CMD)
+        control_cmd = -np.sign(curr_diff) * max(min(abs(P * curr_diff), MAX_CMD), MIN_CMD)
         msg_cmd = Twist()
         msg_cmd.angular.z = control_cmd
         rospy.logwarn(control_cmd)

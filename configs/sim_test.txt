@@ -1,4 +1,4 @@
-map sim1
+map tst1 1
 behav odom_turn_deg 180
-map sim2
+map tst2 0
 behav odom_turn_deg -90

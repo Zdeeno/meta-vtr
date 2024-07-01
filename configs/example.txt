@@ -1,5 +1,5 @@
-map AB
+map AB 2
 behav odom_turn_deg 30
-map BC
+map BC 2
 behav odom_turn_deg -30
-map CD
+map CD 2
